@@ -13,9 +13,9 @@ usage (char const *progname)
 std::shared_ptr<app_option>
 app_option::from_env (int argc, char const *argv[])
 {
-  std::shared_ptr<app_option> p = std::make_shared<app_option> ();
+  std::shared_ptr<app_option> o = std::make_shared<app_option> ();
   char const *progname = argv[0];
-  p->progname = progname;
+  o->progname = progname;
   // argument validation
   if (argc != 2)
     {
@@ -23,7 +23,8 @@ app_option::from_env (int argc, char const *argv[])
       usage (progname);
       exit (EXIT_FAILURE);
     }
-  p->source_filename = argv[1];
-  return p;
+  o->source_filename = argv[1];
+  o->debug = std::getenv ("LB_DEBUG") != NULL;
+  return o;
 }
 } // namespace lb_lexer
