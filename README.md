@@ -1,3 +1,14 @@
+## LB_LEXER
+
+Simple C language lexical analyzer.
+
+Switch debug mode:
+
+```console
+$ export LB_DEBUG=ON # on
+$ export LB_DEBUG=OFF #off
+```
+
 ## 开发环境准备
 
 操作系统：以 Debian 11 为例，其它发行版同理。
