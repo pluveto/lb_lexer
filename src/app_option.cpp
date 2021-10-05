@@ -1,5 +1,6 @@
 #include "app_option.h"
 
+#include <cstring>
 namespace lb_lexer
 {
 
@@ -24,7 +25,7 @@ app_option::from_env (int argc, char const *argv[])
       exit (EXIT_FAILURE);
     }
   o->source_filename = argv[1];
-  o->debug = std::getenv ("LB_DEBUG") != NULL;
+  o->debug = strcmp(std::getenv ("LB_DEBUG"), std::string("ON").c_str()) == 0;
   return o;
 }
 } // namespace lb_lexer
