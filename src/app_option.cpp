@@ -25,7 +25,8 @@ app_option::from_env (int argc, char const *argv[])
       exit (EXIT_FAILURE);
     }
   o->source_filename = argv[1];
-  o->debug = strcmp(std::getenv ("LB_DEBUG"), std::string("ON").c_str()) == 0;
+  auto dbgflag = std::getenv ("LB_DEBUG");
+  o->debug = dbgflag && strcmp(dbgflag, std::string("ON").c_str()) == 0;  
   return o;
 }
 } // namespace lb_lexer
