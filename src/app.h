@@ -15,7 +15,7 @@ private:
   std::stringstream text;
   scanner *scanner_;
   void on_receive_token(token t);
-  bool on_lexical_error(lexical_etype etype, size_t line, size_t col);
+  bool on_lexical_error(lexical_etype etype, size_t line, size_t col, size_t wcol, size_t pos);
 
 public:
   app (const std::shared_ptr<app_option> &option);
