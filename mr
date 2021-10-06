@@ -15,5 +15,5 @@ fi
 cp ./lb_lexer ../dist/
 cd ../dist/
 rm logs/* -rfd
-export SPDLOG_LEVEL=TRACE
-./lb_lexer ../src/main.cpp
+SPDLOG_LEVEL=info
+./lb_lexer btree.c
