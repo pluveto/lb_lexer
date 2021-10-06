@@ -75,7 +75,6 @@ token_type_to_str (token_type t)
     { token_type::CUR_R, "CUR_R" },
     { token_type::COMMA, "COMMA" },
     { token_type::DOT, "DOT" },
-    { token_type::MINUS, "MINUS" },
     { token_type::PLUS, "PLUS" },
     { token_type::SEMIC, "SEMIC" },
     { token_type::SLASH, "SLASH" },
@@ -88,6 +87,10 @@ token_type_to_str (token_type t)
     { token_type::BLKCOM, "BLKCOM" },
     { token_type::PREPROC, "PREPROC" },
 
+
+    { token_type::MINUS, "MINUS" },
+    
+    { token_type::PTMEM, "PTMEM" },
     { token_type::BANG, "BANG" },
     { token_type::BANGE, "BANGE" },
     { token_type::EQUAL, "EQUAL" },

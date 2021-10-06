@@ -10,7 +10,6 @@ enum token_type
   CUR_R, // }
   COMMA, // ,
   DOT,   // .
-  MINUS, // -
   PLUS,  // +
   SEMIC, // ;
   SLASH, // /
@@ -24,6 +23,8 @@ enum token_type
 
   PREPROC, // 预处理指令
 
+  MINUS,  // -
+  PTMEM,  // -> 指向成员
   BANG,   // !
   BANGE,  // !=
   EQUAL,  // =
@@ -31,11 +32,11 @@ enum token_type
   GREAT,  // >
   GREATE, // >=
   LESS,   // <
-  LESSE,  // <=  
-  CARET,    // ^
-  CARETE,   // ^=
-  TILDE,    // ~
-  TILDEE,   // ~=
+  LESSE,  // <=
+  CARET,  // ^
+  CARETE, // ^=
+  TILDE,  // ~
+  TILDEE, // ~=
   AND,    // &
   AAND,   // &&
   OR,     // |
@@ -45,13 +46,13 @@ enum token_type
   MULTPE, // *=
   DIVE,   // /=
 
-  // Literals.
+  // 字面量
   ID,  // identifier
   CHR, // char 'x'
   STR, // string
   NUM, // number
 
-  // Keywords.
+  // 关键字.
   AUTO,
   BREAK,
   CASE,

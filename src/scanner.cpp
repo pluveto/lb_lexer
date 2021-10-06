@@ -394,9 +394,6 @@ scanner::scan_token ()
     case '.':
       fast_yield (token_type::DOT);
       break;
-    case '-':
-      fast_yield (token_type::MINUS);
-      break;
     case '+':
       fast_yield (token_type::PLUS);
       break;
@@ -414,6 +411,9 @@ scanner::scan_token ()
       break;
     case '?':
       fast_yield (token_type::QUEST);
+      break;
+    case '-':
+      fast_yield (match ('>') ? token_type::PTMEM : token_type::MINUS);
       break;
     case '&':
       fast_yield (match ('&') ? token_type::AAND : token_type::AND);
