@@ -26,10 +26,14 @@ scanner::capture ()
   // delete buffer;
   // return str;
 }
+
 char
 scanner::advance ()
 {
+  static int cjk = 0;
+  pos++;
   col++;
+  wcol++;
   current++;
   char c = chstream.rdbuf ()->sbumpc ();
   if (EOF == c)
@@ -38,8 +42,17 @@ scanner::advance ()
       finished = true;
       return c;
     }
+  // 针对 CJK 字符
+  if (c < 0)
+    {
+      if (cjk)
+        wcol--;
+      cjk = ++cjk % 3;
+    }
+
   buff.push_back (c);
-  spdlog::trace ("Taken {}", c);
+  spdlog::trace ("line: {}, col: {}, wcol： {}, pos: {}, taken {}({:x})", line,
+                 col, wcol, pos, c, c);
 
   return c;
 }
@@ -130,7 +143,6 @@ scanner::match_number ()
         }
       if (is_digit (peek_next ()))
         {
-
           // Consume the "."
           advance ();
 
@@ -143,13 +155,23 @@ scanner::match_number ()
 void
 scanner::match_char ()
 {
+  // 空串简单处理
+  if (peek () == '\'')
+    {
+      if (!on_error (lexical_etype::EMPTY_CHAR_LITERAL))
+        {
+          throw std::exception ();
+        }
+      advance ();
+      yield (token (token_type::CHR, "", capture (), line, col));
+      return;
+    }
   //读取，直到读到 "，并且前一个字符不是 '\'
   while (peek () != '\'' && !finished)
     {
       if (peek () == '\n')
         {
-          col = 0;
-          line++;
+          new_line ();
         }
       handle_escape ();
       advance ();
@@ -157,8 +179,13 @@ scanner::match_char ()
 
   if (finished)
     {
-      spdlog::error ("Unterminated char. at {}:{}", line, col);
-      throw std::exception ();
+      if (!on_error (lexical_etype::UNTERMINATED_CHAR))
+        {
+          throw std::exception ();
+        }
+      auto value = capture (); //.substr(ignore, capture ().size() - ignore);
+      yield (token (token_type::CHR, "", value, line, col));
+      return;
     }
 
   // The closing ".
@@ -179,14 +206,18 @@ scanner::match_string ()
     }
   // 【弃用】读取，直到读到 "，并且前一个字符不是 '\'
   //        !(prev () != '\\' && peek () == '"'
-  // 这种方法在识别 "\\" 时会出错
+  // 这种方法在识别 "\\" 时会出错，下面改用 handle_escape() 方法。
 
   while (peek () != '"' && !finished)
     {
       if (peek () == '\n')
         {
-          col = 0;
-          line++;
+          if (!on_error (lexical_etype::UNTERMINATED_STRING))
+            {
+              throw std::exception ();
+            }
+          // recover
+          new_line ();
         }
       handle_escape ();
       advance ();
@@ -194,8 +225,10 @@ scanner::match_string ()
 
   if (finished)
     {
-      spdlog::error ("Unterminated string. at {}:{}", line, col);
-      throw std::exception ();
+      if (!on_error (lexical_etype::UNTERMINATED_STRING))
+        {
+          throw std::exception ();
+        }
     }
 
   // The closing ".
@@ -206,6 +239,14 @@ scanner::match_string ()
 }
 
 void
+scanner::new_line ()
+{
+  col = 0;
+  wcol = 0;
+  line++;
+}
+
+void
 scanner::handle_escape ()
 {
   if (peek () == '\\')
@@ -213,6 +254,7 @@ scanner::handle_escape ()
       switch (peek_next ())
         {
         case '\n': // 续行
+          new_line ();
           advance ();
           break;
           /* 八进制 */
@@ -226,8 +268,10 @@ scanner::handle_escape ()
         case '7':
           advance ();
           break;
+        // see https://en.wikipedia.org/wiki/Escape_sequences_in_C
         case 'a':  // Alert (bell, alarm)
         case 'b':  // Backspace
+        case 'e':  // Escape character
         case 'f':  // Form feed (new page)
         case 'n':  // New-line
         case 'r':  // Carriage return
@@ -237,15 +281,17 @@ scanner::handle_escape ()
         case '\"': // Double quotation mark
         case '?':  // Question mark
         case '\\': // Backslash
+        case 'u':  // Unicode code point below 10000 hexadecimal (added in
+                   // C99)[1]: 26 
+        case 'U':  // Unicode code point where h is a hexadecimal digit
           advance ();
           break;
-        case '\0': /* End of string */
-          spdlog::error ("Unterminated. Unexpected end of string. at {}:{}",
-                         line, col);
-          break;
         default: /* Escaped character like \ ^ : = */
-          spdlog::error ("Unterminated. Escaped character invalid. at {}:{}",
-                         line, col);
+          if (!on_error (lexical_etype::INVALID_ESCAPE_CHAR))
+            {
+              throw std::exception ();
+            }
+          advance ();
           break;
         }
     }
@@ -258,8 +304,7 @@ scanner::match_inline_comment ()
     {
       if (peek () == '\n')
         {
-          col = 0;
-          line++;
+          new_line ();
         }
       advance ();
     }
@@ -274,8 +319,7 @@ scanner::match_preproc ()
     {
       if (peek () == '\n')
         {
-          col = 0;
-          line++;
+          new_line ();
         }
       advance ();
     }
@@ -290,15 +334,16 @@ scanner::match_block_comment ()
       // spdlog::info ("p,pn = {},{}", peek (), peek_next ());
       if (peek () == '\n')
         {
-          col = 0;
-          line++;
+          new_line ();
         }
       advance ();
     }
   if (finished)
     {
-      spdlog::error ("Unterminated block comment, at {}:{}", line, col);
-      throw std::exception ();
+      if (!on_error (lexical_etype::UNTERMINATED_BLOCK_COMMENT))
+        {
+          throw std::exception ();
+        }
     }
   advance ();
   advance ();
@@ -369,7 +414,7 @@ scanner::scan_token ()
       break;
     case '?':
       fast_yield (token_type::QUEST);
-        break;
+      break;
     case '&':
       fast_yield (match ('&') ? token_type::AAND : token_type::AND);
       break;
@@ -430,7 +475,7 @@ scanner::scan_token ()
         match_identifier ();
       else
         {
-          if (on_error (lexical_etype::UNEXPECTED_CHAR, line, col))
+          if (on_error (lexical_etype::UNEXPECTED_CHAR))
             {
               // try recover
             }
@@ -448,6 +493,7 @@ void
 scanner::scan ()
 {
   // 修正
+  col = 0;
   line++;
   while (!finished)
     {
@@ -455,6 +501,12 @@ scanner::scan ()
       buff.clear ();
       scan_token ();
     }
+}
+
+bool
+scanner::on_error (lexical_etype type)
+{
+  return _on_error (type, line, col, pos, wcol);
 }
 
 } // namespace lb_lexer

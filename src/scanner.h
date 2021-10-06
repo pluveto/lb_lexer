@@ -11,11 +11,17 @@ namespace lb_lexer
 
 enum lexical_etype
 {
-  UNEXPECTED_CHAR
+  UNEXPECTED_CHAR,
+  UNTERMINATED_STRING,
+  UNTERMINATED_CHAR,
+  EMPTY_CHAR_LITERAL,
+  UNTERMINATED_BLOCK_COMMENT,
+  INVALID_ESCAPE_CHAR
 };
 
 typedef std::function<void (lb_lexer::token)> yield_token;
-typedef std::function<bool (lexical_etype type, size_t line, size_t col)>
+typedef std::function<bool (lexical_etype type, size_t line, size_t col, size_t wcol,
+                            size_t pos)>
     error_handler;
 
 class scanner
@@ -25,7 +31,8 @@ private:
   std::ostream &chstream;
   // token 回调函数。当一个 token 产生之后执行。
   yield_token yield;
-  error_handler on_error;
+  error_handler _on_error;
+  bool on_error (lexical_etype type);
   // 是否源码读取完毕
   bool finished;
   // buffer 起始位置指针
@@ -36,6 +43,10 @@ private:
   size_t line;
   // 当前列
   size_t col;
+  // 当前列（CJK 算一个字符）
+  size_t wcol;
+  // 已经读取的字节数，也即当前位置
+  size_t pos;
   // buffer，仅当 advance 时推入字符
   std::string buff;
   // 返回前一个字符，即 buff 的最后一个字符. 不存在则返回 0
@@ -72,6 +83,8 @@ private:
   void match_preproc ();
   // 扫描一个 token
   void scan_token ();
+  // 增加行号，重置列号。
+  void new_line ();
 
   // 快速返回一个 token
   void fast_yield (token_type type);
@@ -80,7 +93,7 @@ public:
   // s: 源码输出流
   // y: token 创建时的回调函数
   scanner (std::ostream &s, lb_lexer::yield_token y, lb_lexer::error_handler e)
-      : chstream (s), yield (y), on_error (e){};
+      : chstream (s), yield (y), _on_error (e){};
   // 执行词法分析
   void scan ();
   ~scanner (){};
