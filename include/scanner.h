@@ -1,8 +1,8 @@
 #include "token.h"
 #include <functional>
-#include <iostream>
+#include <istream>
 #include <memory>
-#include <ostream>
+#include <istream>
 #include <sstream>
 #include <string>
 
@@ -28,7 +28,7 @@ class scanner
 {
 private:
   // 源代码字符流
-  std::ostream &chstream;
+  std::istream &chstream;
   // token 回调函数。当一个 token 产生之后执行。
   yield_token yield;
   error_handler _on_error;
@@ -41,7 +41,7 @@ private:
   size_t current;
   // 当前行
   size_t line;
-  // 当前列
+  // 当前列（CJK 按 Unicode 拆为三个字符，能够保证字节数正常）
   size_t col;
   // 当前列（CJK 算一个字符）
   size_t wcol;
@@ -92,7 +92,7 @@ private:
 public:
   // s: 源码输出流
   // y: token 创建时的回调函数
-  scanner (std::ostream &s, lb_lexer::yield_token y, lb_lexer::error_handler e)
+  scanner (std::istream &s, lb_lexer::yield_token y, lb_lexer::error_handler e)
       : chstream (s), yield (y), _on_error (e){};
   // 执行词法分析
   void scan ();
